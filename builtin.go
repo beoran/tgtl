@@ -1,14 +1,14 @@
 package tgtl
 
-func p(env *Environment, args ...Value) (Value, Effect) {
+func p(env *Environment, args ...Value) Value {
 	for _, arg := range args {
 		print(arg, " ")
 	}
 	print("\n")
-	return nil, nil
+	return nil
 }
 
-func print_(env *Environment, args ...Value) (Value, Effect) {
+func print_(env *Environment, args ...Value) Value {
 	var msg string
 	erra := Args(args, &msg)
 	if erra != nil {
@@ -20,12 +20,12 @@ func print_(env *Environment, args ...Value) (Value, Effect) {
 	}
 	n, err := env.Printi(msg, extra...)
 	if err == nil {
-		return Int(n), nil
+		return Int(n)
 	}
-	return Int(n), ErrorFromError(err)
+	return ErrorFromError(err)
 }
 
-func write(env *Environment, args ...Value) (Value, Effect) {
+func write(env *Environment, args ...Value) Value {
 	var msg string
 	erra := Args(args, &msg)
 	if erra != nil {
@@ -33,151 +33,151 @@ func write(env *Environment, args ...Value) (Value, Effect) {
 	}
 	n, err := env.Write(msg)
 	if err == nil {
-		return Int(n), nil
+		return Int(n)
 	}
-	return Int(n), ErrorFromError(err)
+	return ErrorFromError(err)
 }
 
-func iadd(env *Environment, args ...Value) (Value, Effect) {
+func iadd(env *Environment, args ...Value) Value {
 	var i, j int
 	err := Args(args, &i, &j)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Int(i + j), nil
+	return Int(i + j)
 }
 
-func isub(env *Environment, args ...Value) (Value, Effect) {
+func isub(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Int(v1 - v2), nil
+	return Int(v1 - v2)
 }
 
-func imul(env *Environment, args ...Value) (Value, Effect) {
+func imul(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Int(v1 * v2), nil
+	return Int(v1 * v2)
 }
 
-func idiv(env *Environment, args ...Value) (Value, Effect) {
+func idiv(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
 	if v2 == 0 {
-		return nil, ErrorFromString("division by 0")
+		return ErrorFromString("division by 0")
 	}
-	return Int(v1 / v2), nil
+	return Int(v1 / v2)
 }
 
-func igt(env *Environment, args ...Value) (Value, Effect) {
+func igt(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 > v2), nil
+	return Bool(v1 > v2)
 }
 
-func ilt(env *Environment, args ...Value) (Value, Effect) {
+func ilt(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 < v2), nil
+	return Bool(v1 < v2)
 }
 
-func ige(env *Environment, args ...Value) (Value, Effect) {
+func ige(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 >= v2), nil
+	return Bool(v1 >= v2)
 }
 
-func ile(env *Environment, args ...Value) (Value, Effect) {
+func ile(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 <= v2), nil
+	return Bool(v1 <= v2)
 }
 
-func ieq(env *Environment, args ...Value) (Value, Effect) {
+func ieq(env *Environment, args ...Value) Value {
 	var v1, v2 int
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 == v2), nil
+	return Bool(v1 == v2)
 }
 
-func seq(env *Environment, args ...Value) (Value, Effect) {
+func seq(env *Environment, args ...Value) Value {
 	var v1, v2 string
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(v1 == v2), nil
+	return Bool(v1 == v2)
 }
 
-func teq(env *Environment, args ...Value) (Value, Effect) {
+func teq(env *Environment, args ...Value) Value {
 	var t1, t2 Type
 	err := Args(args, &t1, &t2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(t1 == t2), nil
+	return Bool(t1 == t2)
 }
 
-func updateIntByName(update func(in Int) Int, env *Environment, args ...Value) (Int, Effect) {
+func updateIntByName(update func(in Int) Int, env *Environment, args ...Value) Value {
 	var name Word
 	err := Args(args, &name)
 	if err != nil {
-		return Int(0), err
+		return Int(0)
 	}
 	val := env.Lookup(name.String())
 	vi, ok := val.(Int)
 	if !ok {
-		return Int(0), ErrorFromString("Not an integer.")
+		return ErrorFromString("Not an integer.")
 	}
 	newi := update(vi)
 	env.Set(name.String(), newi)
-	return newi, nil
+	return newi
 }
 
-func inc(env *Environment, args ...Value) (Value, Effect) {
+func inc(env *Environment, args ...Value) Value {
 	return updateIntByName(func(in Int) Int {
 		return in + 1
 	}, env, args...)
 }
 
-func dec(env *Environment, args ...Value) (Value, Effect) {
+func dec(env *Environment, args ...Value) Value {
 	return updateIntByName(func(in Int) Int {
 		return in - 1
 	}, env, args...)
 }
 
-func str(env *Environment, args ...Value) (Value, Effect) {
+func str(env *Environment, args ...Value) Value {
 	var v1 Value
 	err := Args(args, &v1)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return String(v1.String()), nil
+	return String(v1.String())
 }
 
-func int_(env *Environment, args ...Value) (Value, Effect) {
+func int_(env *Environment, args ...Value) Value {
 	var v1 Value
 	err := Args(args, &v1)
 	if err != nil {
@@ -185,60 +185,64 @@ func int_(env *Environment, args ...Value) (Value, Effect) {
 	}
 	rs := []rune(v1.String() + " ")
 	index := 0
-	return ParseInteger(rs, &index)
+	v, e := ParseInteger(rs, &index)
+	if e != nil {
+		return env.Fail(e)
+	}
+	return v
 }
 
-func boolBinop(op func(b1, b2 bool) bool, env *Environment, args ...Value) (Value, Effect) {
+func boolBinop(op func(b1, b2 bool) bool, env *Environment, args ...Value) Value {
 	var v1, v2 bool
 	err := Args(args, &v1, &v2)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(op(v1, v2)), nil
+	return Bool(op(v1, v2))
 }
 
-func isnil(env *Environment, args ...Value) (Value, Effect) {
+func isnil(env *Environment, args ...Value) Value {
 	if len(args) < 1 {
 		return env.FailString("isnil requires 1 argument")
 	}
-	return Bool(args[0] == nil), nil
+	return Bool(args[0] == nil)
 }
 
-func band(env *Environment, args ...Value) (Value, Effect) {
+func band(env *Environment, args ...Value) Value {
 	return boolBinop(func(b1, b2 bool) bool {
 		return b1 && b2
 	}, env, args...)
 }
 
-func bor(env *Environment, args ...Value) (Value, Effect) {
+func bor(env *Environment, args ...Value) Value {
 	return boolBinop(func(b1, b2 bool) bool {
 		return b1 || b2
 	}, env, args...)
 }
 
-func bxor(env *Environment, args ...Value) (Value, Effect) {
+func bxor(env *Environment, args ...Value) Value {
 	return boolBinop(func(b1, b2 bool) bool {
 		return b1 != b2
 	}, env, args...)
 }
 
-func bnot(env *Environment, args ...Value) (Value, Effect) {
+func bnot(env *Environment, args ...Value) Value {
 	var v1 bool
 	err := Args(args, &v1)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Bool(!v1), nil
+	return Bool(!v1)
 }
 
-func val(env *Environment, args ...Value) (Value, Effect) {
+func val(env *Environment, args ...Value) Value {
 	if len(args) < 1 {
 		return env.FailString("val requres at least one argument.")
 	}
-	return List(args), nil
+	return List(args)
 }
 
-func ret(env *Environment, args ...Value) (Value, Effect) {
+func ret(env *Environment, args ...Value) Value {
 	if len(args) < 1 {
 		return env.Return(nil)
 	} else if len(args) == 1 {
@@ -248,7 +252,7 @@ func ret(env *Environment, args ...Value) (Value, Effect) {
 	}
 }
 
-func fail(env *Environment, args ...Value) (Value, Effect) {
+func fail(env *Environment, args ...Value) Value {
 	if len(args) < 1 {
 		return env.Fail(ErrorFromString("fail"))
 	} else {
@@ -256,7 +260,7 @@ func fail(env *Environment, args ...Value) (Value, Effect) {
 	}
 }
 
-func break_(env *Environment, args ...Value) (Value, Effect) {
+func break_(env *Environment, args ...Value) Value {
 	if len(args) < 1 {
 		return env.Break(nil)
 	} else if len(args) == 1 {
@@ -266,30 +270,30 @@ func break_(env *Environment, args ...Value) (Value, Effect) {
 	}
 }
 
-func nop(env *Environment, args ...Value) (Value, Effect) {
-	return nil, nil
+func nop(env *Environment, args ...Value) Value {
+	return nil
 }
 
-func typeof_(env *Environment, args ...Value) (Value, Effect) {
+func typeof_(env *Environment, args ...Value) Value {
 	var val Value
 	err := Args(args, &val)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return TypeOf(val), nil
+	return TypeOf(val)
 }
 
-func type_(env *Environment, args ...Value) (Value, Effect) {
+func type_(env *Environment, args ...Value) Value {
 	var val Value
 	err := Args(args, &val)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	name := val.String()
-	return Type(name), nil
+	return Type(name)
 }
 
-func to(env *Environment, args ...Value) (Value, Effect) {
+func to(env *Environment, args ...Value) Value {
 	var name string
 
 	if len(args) < 2 {
@@ -312,10 +316,10 @@ func to(env *Environment, args ...Value) (Value, Effect) {
 	params := args[1 : len(args)-1]
 	defined := Defined{name, params, block}
 	env.Define(name, defined, 1)
-	return defined, nil
+	return defined
 }
 
-func do(env *Environment, args ...Value) (Value, Effect) {
+func do(env *Environment, args ...Value) Value {
 	var name string
 	var doArgs List
 	err := Args(args, &name, &doArgs)
@@ -333,7 +337,7 @@ func do(env *Environment, args ...Value) (Value, Effect) {
 	return eva.Eval(env, doArgs...)
 }
 
-func if_(env *Environment, args ...Value) (Value, Effect) {
+func if_(env *Environment, args ...Value) Value {
 	var cond, ok, haveElse bool
 	var ifBlock, elseBlock Block
 
@@ -374,12 +378,12 @@ func if_(env *Environment, args ...Value) (Value, Effect) {
 		if haveElse {
 			return elseBlock.Eval(env, args...)
 		} else {
-			return nil, nil
+			return nil
 		}
 	}
 }
 
-func switch_(env *Environment, args ...Value) (Value, Effect) {
+func switch_(env *Environment, args ...Value) Value {
 	var defaultBlock Block
 	var haveDefault bool = false
 	if len(args) < 3 {
@@ -409,12 +413,11 @@ func switch_(env *Environment, args ...Value) (Value, Effect) {
 	if haveDefault {
 		return defaultBlock.Eval(env, args...)
 	}
-	return nil, nil
+	return nil
 }
 
-func while(env *Environment, args ...Value) (Value, Effect) {
+func while(env *Environment, args ...Value) Value {
 	var blockRes Value
-	var blockEff Effect
 	if len(args) != 2 {
 		return env.FailString("while needs exactly 3 arguments")
 	}
@@ -427,19 +430,22 @@ func while(env *Environment, args ...Value) (Value, Effect) {
 		return env.FailString("while body must be a block")
 	}
 
-	for res, eff := cond.Eval(env, args...); ValToBool(res); res, eff = cond.Eval(env, args...) {
-		if eff != nil && eff.Flow() > NormalFlow {
-			return res, eff
+	for res := cond.Eval(env, args...); ValToBool(res); res = cond.Eval(env, args...) {
+		flow := ValueFlow(res)
+		if flow > NormalFlow {
+			return res
 		}
-		blockRes, blockEff = block.Eval(env, args...)
-		if blockEff != nil && blockEff.Flow() > NormalFlow {
-			return blockRes, blockEff
+		blockRes = block.Eval(env, args...)
+		blockFlow := ValueFlow(blockRes)
+		// break loop if the result has a flow effect.
+		if blockFlow > NormalFlow {
+			return blockRes
 		}
 	}
-	return blockRes, blockEff
+	return blockRes
 }
 
-func rescue(env *Environment, args ...Value) (Value, Effect) {
+func rescue(env *Environment, args ...Value) Value {
 	var block Block
 	err := Args(args, &block)
 	if err != nil {
@@ -448,7 +454,7 @@ func rescue(env *Environment, args ...Value) (Value, Effect) {
 	return env.Prevent(block)
 }
 
-func set(env *Environment, args ...Value) (Value, Effect) {
+func set(env *Environment, args ...Value) Value {
 	if len(args) < 2 {
 		return env.FailString("set needs at 2 arguments")
 	}
@@ -458,7 +464,7 @@ func set(env *Environment, args ...Value) (Value, Effect) {
 	return env.Set(args[0].String(), args[1])
 }
 
-func let(env *Environment, args ...Value) (Value, Effect) {
+func let(env *Environment, args ...Value) Value {
 	if len(args) < 2 {
 		return env.FailString("def needs at 2 arguments")
 	}
@@ -468,19 +474,19 @@ func let(env *Environment, args ...Value) (Value, Effect) {
 	return env.Define(args[0].String(), args[1], 1)
 }
 
-func get(env *Environment, val ...Value) (Value, Effect) {
+func get(env *Environment, val ...Value) Value {
 	if len(val) < 1 {
 		return env.FailString("get needs at least 1 argument")
 	}
 	target := val[0].String()
-	return env.Lookup(target), nil
+	return env.Lookup(target)
 }
 
-func list(env *Environment, args ...Value) (Value, Effect) {
-	return List(args), nil
+func list(env *Environment, args ...Value) Value {
+	return List(args)
 }
 
-func sadd(env *Environment, args ...Value) (Value, Effect) {
+func sadd(env *Environment, args ...Value) Value {
 	var value Value
 	var str String
 	err := Args(args, &str, &value)
@@ -488,10 +494,10 @@ func sadd(env *Environment, args ...Value) (Value, Effect) {
 		return env.Fail(err)
 	}
 	str = str + String(value.String())
-	return str, nil
+	return str
 }
 
-func sget(env *Environment, args ...Value) (Value, Effect) {
+func sget(env *Environment, args ...Value) Value {
 	var index int
 	var str String
 	err := Args(args, &str, &index)
@@ -502,10 +508,10 @@ func sget(env *Environment, args ...Value) (Value, Effect) {
 	if (index < 0) || (index >= len(runes)) {
 		return env.FailString("index out of range")
 	}
-	return Int(runes[index]), nil
+	return Int(runes[index])
 }
 
-func runes(env *Environment, args ...Value) (Value, Effect) {
+func runes(env *Environment, args ...Value) Value {
 	var str String
 	err := Args(args, &str)
 	if err != nil {
@@ -516,33 +522,33 @@ func runes(env *Environment, args ...Value) (Value, Effect) {
 	for i := 0; i < len(runes); i++ {
 		res = append(res, Int(runes[i]))
 	}
-	return res, nil
+	return res
 }
 
-func wire(env *Environment, args ...Value) (Value, Effect) {
+func wire(env *Environment, args ...Value) Value {
 	var str String
 	for i := 0; i < len(args); i++ {
 		var ch Int
 		err := Convert(args[i], &ch)
 		if err != nil {
-			return str, err
+			return err
 		}
 		str = str + String([]rune{rune(ch)})
 	}
-	return str, nil
+	return str
 }
 
-func slen(env *Environment, args ...Value) (Value, Effect) {
+func slen(env *Environment, args ...Value) Value {
 	var str String
 	err := Args(args, &str)
 	if err != nil {
 		return env.Fail(err)
 	}
 	runes := []rune(str)
-	return Int(len(runes)), nil
+	return Int(len(runes))
 }
 
-func ladd(env *Environment, args ...Value) (Value, Effect) {
+func ladd(env *Environment, args ...Value) Value {
 	var value Value
 	var list List
 	err := Args(args, &list, &value)
@@ -550,10 +556,10 @@ func ladd(env *Environment, args ...Value) (Value, Effect) {
 		return env.Fail(err)
 	}
 	list = append(list, value)
-	return list, nil
+	return list
 }
 
-func lget(env *Environment, args ...Value) (Value, Effect) {
+func lget(env *Environment, args ...Value) Value {
 	var index int
 	var list List
 	err := Args(args, &list, &index)
@@ -563,10 +569,10 @@ func lget(env *Environment, args ...Value) (Value, Effect) {
 	if (index < 0) || (index >= len(list)) {
 		return env.FailString("index out of range")
 	}
-	return list[index], nil
+	return list[index]
 }
 
-func lset(env *Environment, args ...Value) (Value, Effect) {
+func lset(env *Environment, args ...Value) Value {
 	var index int
 	var list List
 	var val Value
@@ -578,28 +584,28 @@ func lset(env *Environment, args ...Value) (Value, Effect) {
 		return env.FailString("index out of range")
 	}
 	list[index] = val
-	return list[index], nil
+	return list[index]
 }
 
-func llen(env *Environment, args ...Value) (Value, Effect) {
+func llen(env *Environment, args ...Value) Value {
 	var list List
 	err := Args(args, &list)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return Int(len(list)), nil
+	return Int(len(list))
 }
 
-func lsort(env *Environment, args ...Value) (Value, Effect) {
+func lsort(env *Environment, args ...Value) Value {
 	var list List
 	err := Args(args, &list)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return list.SortStrings(), nil
+	return list.SortStrings()
 }
 
-func leach(env *Environment, args ...Value) (Value, Effect) {
+func leach(env *Environment, args ...Value) Value {
 	var list List
 	var key Word
 	var name Word
@@ -611,15 +617,16 @@ func leach(env *Environment, args ...Value) (Value, Effect) {
 	for i, v := range list {
 		env.Define(key.String(), Int(i), 0)
 		env.Define(name.String(), v, 0)
-		bval, berr := block.Eval(env, args...)
-		if berr != nil {
-			return bval, berr
+		bval := block.Eval(env, args...)
+		bflow := ValueFlow(bval)
+		if bflow > NormalFlow {
+			return bval
 		}
 	}
-	return list, nil
+	return list
 }
 
-func lslice(env *Environment, args ...Value) (Value, Effect) {
+func lslice(env *Environment, args ...Value) Value {
 	var list List
 	var from Int
 	var to Int
@@ -629,7 +636,7 @@ func lslice(env *Environment, args ...Value) (Value, Effect) {
 	}
 	length := Int(len(list))
 	if length == 0 {
-		return list, nil
+		return list
 	}
 	if from < 0 {
 		from = length - from
@@ -646,30 +653,30 @@ func lslice(env *Environment, args ...Value) (Value, Effect) {
 	if from > to {
 		from, to = to, from
 	}
-	return list[from:to], nil
+	return list[from:to]
 }
 
-func map_(env *Environment, args ...Value) (Value, Effect) {
+func map_(env *Environment, args ...Value) Value {
 	res := make(Map)
 	for i := 1; i < len(args); i += 2 {
 		key := args[i-1]
 		val := args[i]
 		res[key.String()] = val
 	}
-	return res, nil
+	return res
 }
 
-func mget(env *Environment, args ...Value) (Value, Effect) {
+func mget(env *Environment, args ...Value) Value {
 	var index string
 	var hmap Map
 	err := Args(args, &hmap, &index)
 	if err != nil {
 		return env.Fail(err)
 	}
-	return hmap[index], nil
+	return hmap[index]
 }
 
-func mset(env *Environment, args ...Value) (Value, Effect) {
+func mset(env *Environment, args ...Value) Value {
 	var index string
 	var hmap Map
 	var val Value
@@ -678,10 +685,10 @@ func mset(env *Environment, args ...Value) (Value, Effect) {
 		return env.Fail(err)
 	}
 	hmap[index] = val
-	return hmap[index], nil
+	return hmap[index]
 }
 
-func mkeys(env *Environment, args ...Value) (Value, Effect) {
+func mkeys(env *Environment, args ...Value) Value {
 	var hmap Map
 	err := Args(args, &hmap)
 	if err != nil {
@@ -691,10 +698,10 @@ func mkeys(env *Environment, args ...Value) (Value, Effect) {
 	for k, _ := range hmap {
 		res = append(res, String(k))
 	}
-	return res, nil
+	return res
 }
 
-func meach(env *Environment, args ...Value) (Value, Effect) {
+func meach(env *Environment, args ...Value) Value {
 	var map_ Map
 	var key Word
 	var name Word
@@ -711,25 +718,26 @@ func meach(env *Environment, args ...Value) (Value, Effect) {
 	for k, v := range miter {
 		env.Define(key.String(), String(k), 0)
 		env.Define(name.String(), v, 0)
-		bval, beff := block.Eval(env, args...)
-		if beff != nil {
-			return bval, beff
+		bval := block.Eval(env, args...)
+		bflow := ValueFlow(bval)
+		if bflow > NormalFlow {
+			return bval
 		}
 	}
-	return map_, nil
+	return map_
 }
 
-func expand(env *Environment, args ...Value) (Value, Effect) {
+func expand(env *Environment, args ...Value) Value {
 	var msg string
 	err := Args(args, &msg)
 	if err != nil {
 		return env.Fail(err)
 	}
 	res := env.Interpolate(msg)
-	return String(res), nil
+	return String(res)
 }
 
-func help(env *Environment, args ...Value) (Value, Effect) {
+func help(env *Environment, args ...Value) Value {
 	var name string
 	err := Args(args, &name)
 	if err != nil {
@@ -738,28 +746,27 @@ func help(env *Environment, args ...Value) (Value, Effect) {
 	helpMap := env.Lookup("HELP")
 	if helpMap == nil {
 		env.Printi("help: $1:No help available 1.\n", String(name))
-		return nil, err
+		return err
 	}
 	if name == "all" {
 		keys := helpMap.(Map).SortedKeys()
 		for _, k := range keys {
 			v := helpMap.(Map)[k.String()]
-			env.Printi("$1: $2\n", k, v)
+			env.Printi("$1:\t$2\n", k, v)
 		}
-		return nil, nil
+		return nil
 	}
 
 	msg, ok := helpMap.(Map)[name]
 	if ok {
-		env.Printi("help: $1:\n$2\n", String(name), msg)
-
+		env.Printi("help:\t$1:\n$2\n", String(name), msg)
 	} else {
-		env.Printi("help: $1:No help available 2.\n", String(name))
+		env.Printi("help:\t$1:No help available 2.\n", String(name))
 	}
-	return msg, nil
+	return msg
 }
 
-func explain(env *Environment, args ...Value) (Value, Effect) {
+func explain(env *Environment, args ...Value) Value {
 	var name string
 	var help String
 	err := Args(args, &name, &help)
@@ -772,10 +779,10 @@ func explain(env *Environment, args ...Value) (Value, Effect) {
 	}
 	helpMap.(Map)[name] = help
 	env.Define("HELP", helpMap, -1)
-	return help, nil
+	return help
 }
 
-func overload(env *Environment, args ...Value) (Value, Effect) {
+func overload(env *Environment, args ...Value) Value {
 	var name string
 	var target Value
 	err := Args(args, &name, &target)
@@ -789,7 +796,7 @@ func overload(env *Environment, args ...Value) (Value, Effect) {
 }
 
 func (env *Environment) Register(name string,
-	f func(e *Environment, args ...Value) (Value, Effect), help string) {
+	f func(e *Environment, args ...Value) Value, help string) {
 	env.Define(name, Proc(f), -1)
 	explain(env, String(name), String(help))
 }

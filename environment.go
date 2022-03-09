@@ -14,10 +14,9 @@ type Reader interface {
 
 type Frame struct {
 	Variables Map
-	Effect
-	Out     Writer
-	In      Reader
-	Rescuer Value
+	Out       Writer
+	In        Reader
+	Rescuer   Value
 }
 
 type Environment struct {
@@ -45,7 +44,7 @@ func (env Environment) Lookup(name string) Value {
 }
 
 func (env *Environment) Push() *Error {
-	env.Frames = append(env.Frames, &Frame{make(Map), nil, env.Out, env.In, nil})
+	env.Frames = append(env.Frames, &Frame{make(Map), env.Out, env.In, nil})
 	if len(env.Frames) >= FRAMES_MAX && !env.Rescuing {
 		return ErrorFromString("PROGRAM HAS DISAPPEARED INTO THE BLACK LAGOON - too much recursion or function calls")
 	}
@@ -104,24 +103,24 @@ func (env *Environment) Bottom() *Frame {
 }
 
 // Defines the variable in the given scope level
-func (env *Environment) Define(name string, val Value, level int) (Value, Effect) {
+func (env *Environment) Define(name string, val Value, level int) Value {
 	frame := env.Frame(level)
 	if frame == nil {
-		return nil, ErrorFromString("no such frame available.")
+		return ErrorFromString("no such frame available.")
 	}
 	frame.Variables[name] = val
-	return val, nil
+	return val
 }
 
 // Looks up the variable and sets it in the scope where it is found.
 // Returns an error if no such variable could be found.
-func (env *Environment) Set(name string, val Value) (Value, Effect) {
+func (env *Environment) Set(name string, val Value) Value {
 	_, frame := env.LookupFrame(name)
 	if frame == nil {
-		return nil, ErrorFromString("no such variable")
+		return ErrorFromString("no such variable")
 	}
 	frame.Variables[name] = val
-	return val, nil
+	return val
 }
 
 func (env *Environment) Rescuer() Value {
@@ -135,31 +134,34 @@ func (env *Environment) Rescuer() Value {
 // Prevent sets the rescue block to use for
 // the top frame of the environment.
 // It returns the previous rescuer.
-func (env *Environment) Prevent(block Block) (Value, Effect) {
+func (env *Environment) Prevent(block Block) Value {
 	frame := env.Frame(1)
 	if frame == nil {
 		return env.FailString("Could not set rescuer")
 	}
 	old := frame.Rescuer
 	frame.Rescuer = Rescue{block}
-	return old, nil
+	return old
 }
 
 //
-func (env *Environment) Rescue(res Value, eff Effect) (Value, Effect) {
-	if eff == nil || eff.Flow() < FailFlow {
-		return res, eff
+func (env *Environment) Rescue(res Value) Value {
+	flow := ValueFlow(res)
+	if flow < FailFlow {
+		return res
 	}
 	// if there is no rescue installed,
 	// just return as is.
 	if env.Rescuer() == nil {
-		return res, eff
+		return res
 	}
+	eff := res.(Effect)
 	// failures become normal returns
 	// if the rescue didn't fail.
 	val := eff.Unwrap()
-	rres, reff := env.Rescuer().Eval(env, val, res)
-	if reff == nil {
+	rres := env.Rescuer().Eval(env, val, res)
+	reff, rok := rres.(Effect)
+	if !rok {
 		return env.Return(rres)
 	} else {
 		// Here, unpack the effect and replace it with a return
@@ -168,38 +170,19 @@ func (env *Environment) Rescue(res Value, eff Effect) (Value, Effect) {
 	}
 }
 
-func (env *Environment) Flow() Flow {
-	if len(env.Frames) > 0 {
-		index := len(env.Frames) - 1
-		return env.Frames[index].Flow()
-	}
-	return FailFlow
+func (env *Environment) Return(val Value) EffectValue {
+	return Return{val}
 }
 
-func (env *Environment) SetEffect(e Effect) Effect {
-	frame := env.Frame(1)
-	if frame != nil {
-		frame.Effect = e
-	}
-	return e
+func (env *Environment) Fail(err *Error) EffectValue {
+	return err
 }
 
-func (env *Environment) Return(val Value) (Value, Effect) {
-	effect := env.SetEffect(Return{val})
-	return val, effect
+func (env *Environment) Break(val Value) EffectValue {
+	return Break{val}
 }
 
-func (env *Environment) Fail(err *Error) (Value, Effect) {
-	effect := env.SetEffect(err)
-	return nil, effect
-}
-
-func (env *Environment) Break(val Value) (Value, Effect) {
-	effect := env.SetEffect(Break{val})
-	return val, effect
-}
-
-func (env *Environment) FailString(msg string, args ...Value) (Value, Effect) {
+func (env *Environment) FailString(msg string, args ...Value) Value {
 	return env.Fail(env.ErrorFromString(msg, args...))
 }
 
@@ -311,7 +294,7 @@ func (env Environment) Complete(prefix String) List {
 	return res.SortStrings()
 }
 
-func (env *Environment) Overload(name string, target Value, types []Value) (Value, Effect) {
+func (env *Environment) Overload(name string, target Value, types []Value) Value {
 	val := env.Lookup(name)
 	cov, ok := val.(Overload)
 	if val == nil {
@@ -334,5 +317,5 @@ func (env *Environment) Overload(name string, target Value, types []Value) (Valu
 	}
 
 	env.Define(name, cov, -1)
-	return cov, nil
+	return cov
 }

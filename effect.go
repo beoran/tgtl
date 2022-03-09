@@ -17,13 +17,14 @@ const ReturnFlow Flow = 2
 const FailFlow Flow = 4
 
 // Every tgtl command evaluates to a value, which is the result
-// of the command itself, but also an Effect that describes
-// it's special effect on the flow of evaluation itself.
-// A nil effect simply means "continue to the next command"
+// of the command itself. But if this value also implements the Effect
+// interface, then that value also has an effect on the flow of evaluation
+// itself.
+// Otherwise, if the value does not implement effect,
+// this simply means "continue to the next command".
 // But other effects may cause the flow of execution to change
-// as per the Flow member
-// The unwrap member returns the Value that
-// the effect was carrying wrapped in it
+// as per the Flow member.
+// The unwrap member returns the Value that the effect was carrying wrapped in it
 // and which is unwrapped when the effect has influenced the flow.
 type Effect interface {
 	Flow() Flow

@@ -19,13 +19,13 @@ func runLine(env *tgtl.Environment, in string) *tgtl.Error {
 	if parsed == nil {
 		return tgtl.ErrorFromString("No parse results")
 	}
-	val, eff := parsed.Eval(env)
+	val := parsed.Eval(env)
 	if val != nil {
 		env.Printi(">>${1}\n", val)
 	} else {
 		env.Printi(">>nil\n")
 	}
-	err, ok := eff.(*tgtl.Error)
+	err, ok := val.(*tgtl.Error)
 	if ok {
 		return err
 	}
@@ -90,7 +90,7 @@ func runFile(env *tgtl.Environment, name string) *tgtl.Error {
 	for _, a := range os.Args {
 		args = append(args, tgtl.String(a))
 	}
-	_, reff := parsed.Eval(env, args...)
+	reff := parsed.Eval(env, args...)
 	rerr, ok := reff.(*tgtl.Error)
 	if ok {
 		return rerr

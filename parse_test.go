@@ -342,7 +342,7 @@ func TestParseAndRun(t *testing.T) {
 	}
 	env := &Environment{}
 	env.Push()
-	env.Define("print", Proc(func(e *Environment, args ...Value) (Value, Effect) {
+	env.Define("print", Proc(func(e *Environment, args ...Value) (Value) {
 		var msg string
 		Args(args, &msg)
 		print(msg, "\n")

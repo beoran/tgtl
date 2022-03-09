@@ -5,7 +5,7 @@ type Tgtl struct {
 	input string
 }
 
-type Proc func(*Environment, ...Value) (Value, Effect)
+type Proc func(*Environment, ...Value) Value
 
 func (pv Proc) String() string {
 	return "proc"
@@ -14,7 +14,7 @@ func (pv Proc) String() string {
 // Evaler is an interface to a Value that can evaluate itself
 // based on and possibly modifying a given environment.
 type Evaler interface {
-	Eval(*Environment, ...Value) (Value, Effect)
+	Eval(*Environment, ...Value) Value
 }
 
 // Lazyer is an interface to a Value that does not automatically
@@ -264,7 +264,7 @@ type Rescue struct {
 
 // Rescue essentially protects the block from
 // rescue recursion by pushing the stack once.
-func (r Rescue) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (r Rescue) Eval(env *Environment, args ...Value) Value {
 	// ignore the stack depth
 	// protection here to be sure the
 	// rescue block is executed
@@ -300,59 +300,59 @@ func NewTgtl(input string) Tgtl {
 	return Tgtl{0, input}
 }
 
-func (wv Word) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return wv, nil
+func (wv Word) Eval(env *Environment, args ...Value) Value {
+	return wv
 }
 
-func (sv String) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return sv, nil
+func (sv String) Eval(env *Environment, args ...Value) Value {
+	return sv
 }
 
-func (tv Type) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return tv, nil
+func (tv Type) Eval(env *Environment, args ...Value) Value {
+	return tv
 }
 
-func (iv Int) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return iv, nil
+func (iv Int) Eval(env *Environment, args ...Value) Value {
+	return iv
 }
 
-func (bv Bool) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return bv, nil
+func (bv Bool) Eval(env *Environment, args ...Value) Value {
+	return bv
 }
 
-func (ev Error) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return ev, nil
+func (ev Error) Eval(env *Environment, args ...Value) Value {
+	return ev
 }
 
 // Eval of a List expands arguments, except Lazyer elements.
-func (lv List) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (lv List) Eval(env *Environment, args ...Value) Value {
 	res := List{}
 	for _, s := range lv {
 		_, isLazy := s.(Lazyer)
 		if isLazy {
 			res = append(res, s)
 		} else {
-			val, err := s.Eval(env, args...)
-			if err != nil {
-				return val, err
+			val := s.Eval(env, args...)
+			flow := ValueFlow(val)
+			if flow > NormalFlow {
+				return val
 			}
 			res = append(res, val)
 		}
 	}
-	return res, nil
+	return res
 }
 
-func (mv Map) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return mv, nil
+func (mv Map) Eval(env *Environment, args ...Value) Value {
+	return mv
 }
 
-func (cv Comment) Eval(env *Environment, args ...Value) (Value, Effect) {
-	return nil, nil
+func (cv Comment) Eval(env *Environment, args ...Value) Value {
+	return nil
 }
 
-func (bv Block) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (bv Block) Eval(env *Environment, args ...Value) Value {
 	var res Value
-	var eff Effect
 	// set parameters to $1 ... $(len(args))
 	for i, a := range args {
 		name := Itoa(i + 1)
@@ -364,41 +364,43 @@ func (bv Block) Eval(env *Environment, args ...Value) (Value, Effect) {
 	env.Define("argv", List(args), 0)
 	for _, s := range bv.Statements {
 		// Call the statement.
-		res, eff = s.Eval(env, args...)
+		res = s.Eval(env, args...)
 		// if the flow is not normal anymore,
 		// end the block execution at this point
-		if eff != nil && eff.Flow() > NormalFlow {
-			// If it was a break, unwrap and done,
-			if eff.Flow() <= BreakFlow {
-				return eff.Unwrap(), nil
-			} else if eff.Flow() == FailFlow {
+		flow := ValueFlow(res)
+		if flow > NormalFlow {
+			// If it was a break or less, unwrap and done,
+			if flow <= BreakFlow {
+				return res.(Effect).Unwrap()
+			} else if flow == FailFlow {
 				// If it is a fail try to rescue it
-				return env.Rescue(res, eff)
+				return env.Rescue(res)
 			}
-			return res, eff
+			return res
 		}
 		env.Define("RESULT", res, 0)
 	}
-	return res, eff
+	return res
 }
 
-func (pv Proc) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (pv Proc) Eval(env *Environment, args ...Value) Value {
 	return pv(env, args...)
 }
 
-func (cv Command) Eval(env *Environment, args ...Value) (Value, Effect) {
-	val, eff := cv.Order.Eval(env)
-	if eff != nil || val == nil {
-		return val, eff
+func (cv Command) Eval(env *Environment, args ...Value) Value {
+	val := cv.Order.Eval(env)
+	flow := ValueFlow(val)
+	if flow > NormalFlow {
+		return val
 	}
 	name := val.String()
 	fun := env.Lookup(name)
 	if fun == nil {
-		return nil, ErrorFromString("Cannot evaluate nil order: " + name)
+		return ErrorFromString("Cannot evaluate nil order: " + name)
 	}
 	eva, ok := fun.(Evaler)
 	if !ok {
-		return nil, ErrorFromString("Cannot evaluate: " + name)
+		return ErrorFromString("Cannot evaluate: " + name)
 	}
 	err := env.Push()
 	// stack depth protection
@@ -408,33 +410,35 @@ func (cv Command) Eval(env *Environment, args ...Value) (Value, Effect) {
 	defer env.Pop()
 	fargs := cv.Parameters
 	// Expand Evaluation arguments, but not block elements.
-	eargs, eff := fargs.Eval(env, args...)
-	if eff != nil {
-		return nil, eff
+	eargs := fargs.Eval(env, args...)
+	flow = ValueFlow(eargs)
+	if flow > NormalFlow {
+		return eargs
 	}
 	return eva.Eval(env, eargs.(List)...)
 }
 
-func (gv Getter) Eval(env *Environment, args ...Value) (Value, Effect) {
-	val, err := gv.Key.Eval(env)
-	if err != nil || val == nil {
-		return val, err
+func (gv Getter) Eval(env *Environment, args ...Value) Value {
+	val := gv.Key.Eval(env)
+	flow := ValueFlow(val)
+	if flow > NormalFlow {
+		return val
 	}
-	return env.Lookup(val.String()), nil
+	return env.Lookup(val.String())
 }
 
-func (ev Evaluation) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (ev Evaluation) Eval(env *Environment, args ...Value) Value {
 	err := env.Push()
 	// stack depth protection
 	if err != nil {
 		return env.Fail(err)
 	}
 	defer env.Pop()
-	val, eff := ev.Command.Eval(env, args...)
-	return val, eff
+	val := ev.Command.Eval(env, args...)
+	return val
 }
 
-func (dv Defined) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (dv Defined) Eval(env *Environment, args ...Value) Value {
 	err := env.Push()
 	// stack depth protection
 	if err != nil {
@@ -449,17 +453,18 @@ func (dv Defined) Eval(env *Environment, args ...Value) (Value, Effect) {
 	// $0 contains the name of the defined procedure
 	env.Define("0", String(dv.Name), 0)
 	defer env.Pop()
-	val, eff := dv.Block.Eval(env, args...)
-	if eff == nil || eff.Flow() < ReturnFlow {
-		return val, nil
-	} else if eff.Flow() == ReturnFlow {
-		return eff.Unwrap(), nil
+	val := dv.Block.Eval(env, args...)
+	flow := ValueFlow(val)
+	if flow < ReturnFlow {
+		return val
+	} else if flow == ReturnFlow {
+		return val.(Effect).Unwrap()
 	} else { // failures pass through
-		return val, eff
+		return val
 	}
 }
 
-func (iv Wrapper) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (iv Wrapper) Eval(env *Environment, args ...Value) Value {
 	// Object like values such as interfaces or structs
 	// have methods that are called with the method
 	// name as the first word argument, which is used
@@ -479,7 +484,7 @@ func (iv Wrapper) Eval(env *Environment, args ...Value) (Value, Effect) {
 	return method.Eval(env, args...)
 }
 
-func (sv Object) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (sv Object) Eval(env *Environment, args ...Value) Value {
 	// See interface for this dispatch
 	var name Word
 	err := Args(args, &name)
@@ -502,7 +507,7 @@ func TypeOf(val Value) Type {
 	}
 }
 
-func (cv Overload) Eval(env *Environment, args ...Value) (Value, Effect) {
+func (cv Overload) Eval(env *Environment, args ...Value) Value {
 	signature := ""
 	for _, arg := range args {
 		signature += "_" + TypeOf(arg).String()
@@ -532,3 +537,16 @@ func (t Type) Type() Type     { return Type("Type") }
 func (s Object) Type() Type   { return s.Kind }
 func (i Wrapper) Type() Type  { return i.Kind }
 func (t Type) Overload() Type { return Type("Overload") }
+
+type EffectValue interface {
+	Effect
+	Value
+}
+
+func ValueFlow(v Value) Flow {
+	effect, ok := v.(Effect)
+	if ok {
+		return effect.Flow()
+	}
+	return NormalFlow
+}
