@@ -1,0 +1,148 @@
+#!/usr/bin/env tgtl
+#
+# Basic test of tgtl. All prints should produce PASS. Comments should be ignored.
+let tc 1
+let tn "Test: basic printing and command calling"
+print "PASS $tc $tn $tn\n"
+inc tc
+set tn "Test: string interpolation"
+print "${1}${2} $tc $tn\n" "PA" "SS"
+inc tc
+set tn "Test: variable setting, evaluations, and if"
+let a 10
+if [ilt $a 20] {
+	print "PASS $tc $tn\n"
+} else {
+	print "FAIL $tc $tn\n"
+}
+inc tc
+set tn "Test: if with block condition"
+let b 12
+if {ilt $b 20} {
+	print "PASS $tc $tn\n"
+} else {
+	print "FAIL $tc $tn\n"
+}
+inc tc
+set tn "Test: else block"
+if [ige $a 20] {
+	print "FAIL  $tc $tn\n"
+} else {
+	print "PASS $tc $tn\n"
+}
+inc tc
+set tn "Test: command definition"
+to test_ok {
+	print "PASS $tc $tn\n"
+	return 0
+}
+test_ok
+
+inc tc
+set tn "Test: break in block"
+{
+	# break should only break the block
+	break
+}
+print "PASS $tc $tn\n"
+
+inc tc
+set tn "Test: break in block function"
+to break_block {
+	break [expand "PASS $tc $tn"]
+	print "FAIL $tc $tn went too far \n"
+	expand "FAIL $tc $tn"
+}
+print "$1\n" [break_block]
+
+inc tc
+set tn "Test: return values"
+to return_ok {
+	return [expand "PASS $tc $tn"]
+	print "FAIL $tc $tn went too far \n"
+}
+print "$1\n" [return_ok]
+
+inc tc
+set tn "Test: multiple return values"
+to return_multi_ok {
+	return "PA" "AS" [expand "$tc $tn"]
+	print "FAIL $tc $tn went too far \n"
+}
+print "$1\n" [return_multi_ok]
+
+set tn "Test: fail/rescue catching"
+to fail_ok {
+	fail "FAIL $tc $tn"
+}
+inc tc
+to test_rescue {
+	rescue {
+		let var [expand "PASS $tc $tn\n"]
+		return "PASS $tc $tn\n"
+	}
+	fail_ok
+	print  "FAIL $tc $tn went too far\n"
+	return 0
+}
+print [test_rescue]
+
+set tn "Test: top level block evaluation and stack"
+inc tc
+let var "FAIL $tc $tn"
+{
+	let var "FAIL $tc $tn 2"
+	{
+		let var [expand "PASS $tc $tn\n"]
+		print $var
+	}
+	print $var
+}
+print $var
+
+let rec 0
+set tn "Test: no recursion from fail in rescue blocks"
+inc tc
+to test_fail_in_rescue {
+	rescue {
+		inc rec
+		if [igt $rec 1] {
+			return "FAIL $tc $tn: recursion detected: $rec\n"
+		} else {
+			fail "PASS $tc $tn: $rec\n"
+		}
+	}
+	fail_ok
+	print  "FAIL $tc $tn went too far\n"
+	return 0
+}
+print [test_fail_in_rescue]
+
+
+# This test does stop the recursion but it fails
+# in the sense thet the error cannot be caught
+# because somehow the rescue block isn't set up
+# correctly.
+# set rec 0
+# set tn "Test: recursion limit"
+# inc tc
+# rescue {
+# 	print "PASS $tc $tn: limited\n"
+# }
+# to test_recursion_limit {
+# 	rescue {
+# 		return "PASS $tc $tn: limited\n"
+# 	}
+# 	inc rec
+# 	print "$rec "
+# 	if [igt $rec 38]  {
+# 		print  "FAIL $tc $tn: not limited\n"
+# 		return 0
+# 	}
+# 	test_recursion_limit
+# }
+# nop
+# print [test_recursion_limit]
+# return "PASS $tc $tn: returned\n"
+
+

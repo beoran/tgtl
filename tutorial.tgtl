@@ -1,0 +1,285 @@
+#!/usr/bin/env tgtl
+#
+# Welcome to TGTL! This is an executable tutorial for the TGTL language.
+# You will need to get the TGTL interpreter and install it for your platform
+# to run this script.
+# What is the line on top of the script? It is there to allow the TGTL script
+# to be executed directly on Unix like OS.
+#
+# Tgtl works in two phases: parse and evaluate.
+#
+# In the parse phase TGTL reads in the script and parses it,
+# which means it breaks it down into a format it can interpret. If an error
+# occurs in this phase, TGTL will report that error and the script will
+# do nothing at all.
+#
+# In the evaluate phase, TGTL then interprets or evaluates the parsed script.
+# If an error occurs the script will still partially be executed,
+# and such errors may be caught and handled.
+#
+# Now let's start exploring the TGTL language itself.
+# In front of this line and those above, you can see there is a # mark.
+# This is to indicate that the line is a comment.
+# TGTL parses comments but they do nothing during evaluation.
+# This is useful to explain what an TGTL script does like in this tutorial.
+#
+# Comments run from the # mark until the end of the line.
+# Comments may also be indented with spaces.
+  # For example: this is also comment
+#
+# To make TGTL actually do something, we need to write a command in the script.
+# Let's start with the traditional "Hello World!" below:
+print "Hello World!\n"
+# The command above consists of an order print, and it's parameter
+# "Hello world\n" which is a literal text, with a new line character in it at
+# the end.
+# This commands orders the TGTL interpreter to print the text "Hello World"
+# followed by a new line to the interpreter's standard output.
+#
+# Commands in TGTL consist of an order followed optionally by parameters
+# Every parameter has to have whitespace in front of it, so TGTL can find it.
+# That's why it's not allowed to have whitespace at the end of the line.
+# Tgtl will give a parse error since it expects a parameter to follow the space.
+# An Tgtl command must be terminated by a newline or a semicolon.
+print "Hello " ; print "World!\n"
+# Some arguments take multiple parameters.
+# For example, print can also take multiple parameters.
+print "Hello $1\n" "World!"
+#
+# The $1 in the string above is an example of string interpolation.
+# This is explained later, below in this tutorial. For now, note that
+# print will replace $1, $2, ... with the text representation of it's 1st,
+# 2nd, and so forth parameter.
+#
+# All commands in TGTL have this same form. Unlike many other programming
+# languages, there are no special constructs. The evaluation of an Tgtl script
+# is fully determined by the available commands.
+# In this tutorial we look at how TGTL works with the builtin commands it
+# provides, but when TGTL is used as an embedded language, it might work
+# differently if the commands are different or not available.
+#
+# The effect of TGTL commands also depend on the Environment in which they
+# are executed. TGTL command can write to the TGTL environment's output,
+# read from the TGTL's environment input, and store data in the environment
+# using variables. Variabes are described later.
+#
+# Let's continue with some examples of commands.
+# For example this is how do do 1 + 2 in TGTL:
+iadd 1 2
+# As you can see tgtl has no operators, just commands, so we use the command
+# iadd, short for integer add to add 1 and 2 together.
+# You will notice that when running this script, this iadd seems to do nothing
+# This is because we don't print the value anywhere.
+# Let's see how to do this.
+print "1+2=$1\n" [iadd 1 2]
+# The command above prints 1+2=3. But, what are the square brackets [] for?
+# Let's see what happens when we remove them:
+print "1+2=$1\n" iadd 1 2
+# Then the command prints 1+3=iadd
+# The brackets [] are to indicate to TGTL that it should not take what is
+# between them as parameters of the first command in the line, but that it
+# starts a new command of which the value should be taken and used as
+# a parameter. Such a command between [] is called an Evaluation.
+#
+# Evaluations are eagerly evaluated when they are in an argument list.
+# This means they are evaluated before the command receives them as arguments.
+#
+# Evaluations may be nested as much as you like. For instance:
+print "((5+4)*3)-1)/2=$1\n" [idiv [isub [imul [iadd 5 4] 3] 1] 2]
+# .. prints ((5+4)*3)-1)/2=13
+#
+# While this seems a bit cumbersome compared to operators, it keeps TGTL simple.
+# I do not recommend using TGTL for intensive maths.
+#
+# From this we can see that tgtl commands not only have effects such as writing
+# to the output, they also produce a result. If the TGTL command is successful
+# it returns a Value. If it not successful, it fails, which causes execution to
+# end, unless a rescue command is used (see later).
+# All commands either return a value or fail. Even print returns the amount of
+# bytes written, as follows:
+#
+print "Written $1 bytes\n" [print "Hello World\n"]
+#
+# The basic data which TGTL operates on, and which commands return
+# is called a Value. Unlike languages like TCL, TGTL Values are typed.
+# To see the type of a value use the typeof command
+print "type of 1: $1\n" [typeof 1]
+print "type of \"hi\": $1\n" [typeof "hi"]
+#
+# TGTL supports the following types by default:
+# * String: for literal text, in UTF-8 format.
+write "String µ出来る\n"
+# The above should write String µ出来るif your terminal supports it.
+# Normal strings support the following escape sequences:
+# \a: bell character
+# \b: backspace character
+# \e: escape character
+# \f: form feed character
+# \n: new line character
+# \r: carriage return character
+# \t: tab character
+# \\: a \ character
+# \": a " character
+# For instance, on a terminal which suports ANSI color the following prints
+# foo	bar\ in red:
+print "escapes: \nX\b\e[31mfoo\tbar\\\e[0m\n\r"
+# Strings can run over multiple lines
+# A string can also run over multiple lines if it is a raw string between ``
+# Raw strings accept no escape characters and always terminate on a `.
+# There is no way to put a `in a raw string, but a raw string ans a normal
+# string can be appended  to each other to allow this if the sadd
+# command is available.
+print `A
+"raw"
+string
+\\ no escapes \"
+`
+# * Int: which is for integer numbers.
+print "Int: $1\n" 123
+# * Word: which is for names.
+# Words consist have any non-symbol, non whitespace character, _ and /
+print "Word: $1\n" iAmA_Word/7
+# * Bool: for boolean values. $true and $false are default boolean variables.
+# Words consist have any non-symbol, non whitespace character, _ and /
+print "Bool: $1 $2\n" $true $false
+# * List: for lists of TGTL values.
+# lists are created wth the list command
+print "List: $1\n" [list 1 2 3]
+# * Map: for a lookup map by string to value.
+# maps are created wth the map command. The key of maps must be strings.
+print "Map: $1\n" [map "a" 1  "b" 2]
+# * Block: for blocks of TGTL commands, between {}.
+# More about blocks later.
+print "Block: $1\n" {print "block ";print "world"}
+# * Type: for types.
+# Types can be defined with the command type. they are useful for defining
+# overloads. More on overloads later.
+print "Type: $1\n" [typeof [type "Type"]]
+#
+# When embedding TGTL, the embedding program can define other types.
+#
+# We can store values the TGTL environment as variables.
+# In TGTL, a variable must first be declared and initialized with let
+# before using it.
+#
+print "Hello $1 variable\n" $variable
+# This prints Hello !nil because the variable has not been defined yet.
+# To define a variabe with a value, use let
+let variable "World"
+# To get the value of the variable use get in an evaluation:
+print "Hello Variable: $1\n" [get variable]
+# [get variablename] is a common operation so we can abbreviate it using
+# a dollar sign: $variablename
+print "Hello Variable: $1\n" $variable
+# It's possible to repeat the dollar sign for indirect variable expansion
+let name variable
+print "Hello indirect variable: $1\n" $$name
+
+# String interpolation.
+# print as a command, performs string interpolation. That means it looks for
+# any dolar signs in the text and replaces them with the value of the
+# following variable in the TGTL environment.
+print "Hello Variable: $variable\n"
+# The variable for interpolation can also be indicated by a ${variable}
+# This is useful to if the variable must befollowed by a non-space:
+print "Hello Variable: ${variable}Record\n"
+# To obtain a $ in an interpolated value, just double it.
+print "Hello dollar: $$${1}\n" 35
+# TGTL does not do string interpolation automatically, it is up
+# to the commands that take strings to do this if needed.
+# To interpolate strings ourselves, we can use the expand command
+set variable "expanded"
+let expanded [expand "Hello $variable\n"]
+print $expanded
+# Blocks are lists of commands. Block are not evaluated when passed as
+# a parameter to a command, but passed as such, and can be used to
+# implement flow control using commands, or to define new commands.
+# Blocks can run over multiple lines, the newlines in a block do NOT
+# terminate the top level command in front of the block.
+# The value of executing a block is set by the last command in the block,
+# or the return command if present.
+# Blocks also have anonymous parameters that are evaluated upon execution
+# of the block.
+let block {
+	# Blocks receive their anyonymous parameters in $1..$argc, and
+	# as a list in $argv
+	let p1 $1
+	print "hello $p1 $argc $argv"
+	print " block\n"
+	return 77
+}
+# Blocks stored in variables can be executed as if they were commands,
+# and can take parameters
+block "param1"
+# And blocks evaluate to their last command or return statement.
+print "block value: $1\n" [block]
+# Variables are dynamically and block-scoped.
+# When using set, and get, the innermost variable defined with let
+# will be used to set or get the value.
+# XXX bug here it seems
+let foo 1
+#{
+#	let foo 2
+#	{
+#		let foo 3
+#		print "$foo\n"
+#	}
+#	print "$foo\n"
+#}
+print "$foo\n"
+# compare the above with the below:
+let bar 1;{set bar 2;{set bar 3;print "$bar\n"};print "$bar\n"};print "$bar\n"
+# You can define commands yourself with the builtin "to" command.
+# This allows you to use named parameters in the block.
+# Parameters are passed by value, but using word parameters, you can implement
+# pass by name parameters as well.
+to set_print name value {
+	print "Setting $name from $1 to $value\n" $$name
+	set $name $value
+	return 0
+}
+let quux 123
+set_print quux 321
+print "quux: $quux\n"
+# Flow control can be done with the built in if command.
+if [igt $quux 200] {
+	print "OK\n"
+} else {
+	print "HUH?\n"
+}
+# ...or with the switch comand. The default word is used to mark the default
+# block. Other values are compared by string equality.
+switch $quux default {
+		print "NOK?\n"
+} 123 {
+		print "ALSO NOT OK\n"
+} 321 {
+		print "OK\n"
+}
+
+# The overload command allows you to use the same command for different types
+# by redirecting them to a type-specific command
+overload add iadd Int Int
+overload add sadd String String
+print [add 10 20]
+print [add "10" "20"]
+
+# When an error occurs, it can be caught by setting up a rescue block with
+# the rescue command. The rescue block itself has block scope, that is
+# it applies to the block in which the rescue command is called.
+# To cause an error, use the fail command.
+to rescue_fail {
+	rescue {
+		let e $1
+		print "Error rescued: $e\n"
+	}
+	fail "Synthetic error"
+}
+rescue_fail
+
+# There are many other builtin commands available. See their description
+# by using the help or help all command.
+# help all
+help help
+
+

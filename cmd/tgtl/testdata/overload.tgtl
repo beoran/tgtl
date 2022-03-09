@@ -1,0 +1,26 @@
+#!/usr/bin/env tgtl
+#
+#
+
+overload add $iadd Int Int
+overload add sadd String String
+overload add {
+	print "In _String_Int\n"
+	break [sadd $1 [str $2]]
+} String Int
+
+print "$1\n" [add "7" "9"]
+print "$1\n" [add 7 9]
+
+to bad_overload {
+	rescue {
+		print "PASS: Failure expected\n"
+		rescue nil
+	}
+	print "$1\n" [add 7 "9"]
+}
+
+bad_overload
+
+print "Finally $1\n" [add "9" 7]
+

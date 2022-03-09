@@ -1,0 +1,260 @@
+#!/usr/bin/env tgtl
+#
+# Tests for the builtins except the following:
+# if: if runs $1 if $0 is true, otherwise runs $2
+# fail: fail execution of a procedure
+# set: sets a variable
+# get: get the contents of a variable
+# ret: return from a procedure
+# return: return from a procedure
+# to: define a procedure
+# see basic.tgtl for tests for these builtins
+
+## Test function
+# Performs a test case case and then passes the test if cond returns nonzero
+# Can also rescue failures.
+to test case cond {
+	rescue {
+		let res $1
+		if [cond $res "fail"] {
+			print "PASS rescue test $1: $2\n" $case $res
+			return 0
+		} else {
+			print "FAIL rescue test $1: $2\n" $case $res
+			return 0
+		}
+		return "$res"
+	}
+	let res [case]
+	if [cond $res "return"] {
+		print "PASS test $1: $2\n" $case $res
+	} else {
+		print "FAIL test $1: $2\n" $case $res
+	}
+}
+
+## Output
+
+# print: print to the environnment's current output writer
+print "PASS print"
+
+## Help
+# explain: set the help for a procedure
+explain "PASS" "PASS help"
+
+# help: get help for a procedure
+help "PASS"
+
+## Strings
+# sadd: returns a string  with $2 appended to string $1
+test {sadd "PA" "SS"} {seq $1 "PASS"}
+# sget: gets a rune from a string by index
+test {sget "abµc" 2} {seq $1 181}
+# slen: returns the length of a string in runes
+test {slen "abµc"} {seq $1 4}
+# expand: interpolate strings from environment
+let e "PASS expand"
+print "$1\n" [expand "$e"]
+
+# Equality
+# seq: checks if [str $1] == [str $2]
+if [seq "7" 7] {
+	print "PASS seq\n"
+}
+
+# ieq: checks if $1 == $2, where $1 and $2 must be Int
+if [ieq 7 7] {
+	print "PASS ieq\n"
+}
+
+## Integers
+# iadd: adds an Int to an Int
+test {iadd 3 4} {ieq $1 7}
+# isub: subtracts an Int from an Int
+test {isub 3 4} {ieq $1 -1}
+# imul: multiplies an Int by an Int
+test {imul 3 4} {ieq $1 12}
+# idiv: divides an Int by an Int
+test {idiv 12 4} {ieq $1 3}
+# idiv: divide an Int by 0 should give an error
+test {idiv 12 0} {seq $1 "division by 0"}
+# ilt: checks if $1 < $2, where $1 and $2 must be Int
+test {ilt 12 4} {ieq $1 0}
+# ilt: checks if $1 < $2, where $1 and $2 must be Int
+test {ilt 4 12} {ieq $1 -1}
+# igt: checks if $1 > $2, where $1 and $2 must be Int
+test {igt 12 4} {ieq $1 -1}
+# igt: checks if $1 > $2, where $1 and $2 must be Int
+test {igt 4 12} {ieq $1 0}
+# ile: checks if $1 <= $2, where $1 and $2 must be Int
+test {ile 12 4} {ieq $1 0}
+# ile: checks if $1 <= $2, where $1 and $2 must be Int
+test {ile 4 12} {ieq $1 -1}
+# ige: checks if $1 >= $2, where $1 and $2 must be Int
+test {ige 12 4} {ieq $1 -1}
+# ige: checks if $1 >= $2, where $1 and $2 must be Int
+test {ige 4 12} {ieq $1 0}
+
+let i 123
+# inc: increments the named integer $1 and returns it
+test {inc i} {ieq $i 124}
+
+set i 123
+# dec: decrements the named integer $1 and returns it
+test {dec i} {ieq $i 122}
+
+## Booleans
+# bor: returns true if one of its arguments are true
+test {bor 0 0} {ieq $1 0}
+# bor: returns true if one of its arguments are true
+test {bor 0 -1} {ieq $1 -1}
+# bor: returns true if one of its arguments are true
+test {bor -1 0} {ieq $1 -1}
+# bor: returns true if one of its arguments are true
+test {bor -1 -1} {ieq $1 -1}
+# band: returns true if all of its arguments are true
+test {band 0 0} {ieq $1 0}
+# band: returns true if all of its arguments are true
+test {band 0 -1} {ieq $1 0}
+# band: returns true if all of its arguments are true
+test {band -1 0} {ieq $1 0}
+# band: returns true if all of its arguments are true
+test {band -1 -1} {ieq $1 -1}
+# bxor: returns true if its arguments are different
+test {bxor 0 0} {ieq $1 0}
+# bxor: returns true if its arguments are different
+test {bxor 0 -1} {ieq $1 -1}
+# bxor: returns true if its arguments are different
+test {bxor -1 0} {ieq $1 -1}
+# bxor: returns true if its arguments are different
+test {bxor -1 -1} {ieq $1 0}
+# bnot
+test {bnot -1 } {ieq $1 0}
+# bnot
+test {bnot 0 } {ieq $1 -1}
+
+## Lists
+# list: creates a new array list
+let l [list 1 2 3]
+test {expand "$l"} {seq $1 "[list 1 2 3]"}
+# llen: returns the length of a list
+test {llen $l} {ieq $1 3}
+# lget: gets a value from a list by index
+test {lget $l 0} {ieq $1 1}
+# lget: gets a value from a list by index
+test {lget $l 1} {ieq $1 2}
+# lget: out of bounds
+test {lget $l 77} {seq $1 "index out of range"}
+# lget: out of bounds
+test {lget $l -1} {seq $1 "index out of range"}
+# lset: sets a value to a list by index and value
+lset $l 1 7
+test {lget $l 1} {ieq $1 7}
+# ladd: returns a list with $2 appended to List $1
+set l [ladd $l 99]
+test {lget $l 3} {seq $1 99}
+# leach: calls the block $4 for each entry in the list
+to leach_test l {
+	let ksum 0
+	let vsum 0
+	let reps 0
+	let l2 $l
+	leach $l k v {
+	    inc reps
+		set ksum [iadd $ksum $k] 2
+		set vsum [iadd $vsum $v] 2
+		# try to cause overflow, should not cause leach to change
+		ladd $l2 77
+	}
+	return [list $ksum $vsum $reps]
+}
+test {leach_test $l} {set l $1; seq [str $l] "[list 6 110 4]"}
+
+## Maps
+# map: creates a new hash map
+let m [map "key3" "value3"]
+test {expand "$m"} {seq $1 "[map  key3 value3]"}
+# mget: gets a value from a map by key
+test {mget $m "key3"} {seq $1 "value3"}
+
+# mset: sets a value to a map by key and value
+mset $m "key1" "value1"
+mset $m "key2" "2"
+test {mget $m key2} {seq $1 "2"}
+test {mget $m key1} {seq $1 "value1"}
+
+# mkeys: returns all keys of a map as an unsorted list
+test {mkeys $m} {set k $1; ieq [llen $k] 3}
+
+# meach: calls the block $4 for each entry in the list
+to meach_test m {
+	let ksum ""
+	let vsum ""
+	let reps 0
+	meach $m k v {
+	    inc reps
+		set ksum [sadd $ksum $k]
+		set vsum [sadd $vsum [str $v]]
+		# try to cause overflow, should not cause meach to change iterations
+		mset $m $ksum $vsum
+	}
+	return $reps
+}
+test {meach_test $m} {set m $1;  ieq $m 3}
+
+## Conversions
+# str: converts $1 to String
+test {str 123} {seq $1 "123"}
+
+# int: converts $1 to Int
+test {int "-123"} {ieq $1 -123}
+test {int "banana"} {seq $1 "Value cannot be converted"}
+test {int "-123banana"} {ieq $1 -123}
+
+# val: gets the value of a value
+let vi 23
+# FIXME: val has a bug
+# test {val $vi} {ieq $1 23}
+
+## Types
+# type: returns $1 converted to a type
+test {type Foo} {seq $1 "Foo"}
+# typeof: returns the type of $1 or Unknown if not known
+test {typeof 1} {seq $1 [type Int]}
+# typeof: String
+test {typeof "foo"} {seq $1 [type String]}
+# typeof: Word
+test {typeof FooWord} {seq $1 [type Word]}
+# teq: checks if $1 and $2 are exactly the same type"
+test {teq [type Foo] [type Foo]} {ieq $1 -1}
+
+## Control statemnts
+let i 10
+# while: executes $2 while $1 returns true
+to while_test {
+	while { igt $i 0 } {
+		dec i
+	}
+}
+test {while_test} {ieq $i 0}
+
+# switch: selects one of many cases
+to switch_test v {
+	switch $v 0 {
+		return 10
+	} 1 {
+		return 20
+	} 2 {
+		return 30
+	} "3" {
+		return 40
+	} default {
+		return 50
+	}
+}
+test {switch_test 0} {ieq $1 10}
+test {switch_test 1} {ieq $1 20}
+test {switch_test 2} {ieq $1 30}
+test {switch_test "3"} {ieq $1 40}
+test {switch_test "not in case"} {ieq $1 50}
+
